@@ -29,6 +29,8 @@ class Settings:
 
     CACHED_VIEW_VARY_ON_REQUEST_PARAMS = ('flavour', )
 
+    MINIFY_HTML = True
+
     def __init__(self):
         result_special_cases = {}
         special_cases = self.CACHED_METHOD_SPECIAL_CASES

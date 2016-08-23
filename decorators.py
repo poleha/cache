@@ -1,6 +1,7 @@
 from .app_settings import settings
 from django.core.cache import cache
 from .helper import make_key_from_args, get_class_path, rec_getattr, get_class_that_defined_method
+from htmlmin.minify import html_minify
 
 
 class CachedProperty(property):
@@ -63,6 +64,8 @@ def cached_view(timeout=settings.CACHED_VIEW_DURATION, test=lambda request: True
                     res = func(self, request, *args, **kwargs)
                     if hasattr(res, 'render'):
                         res.render()
+                    if settings.MINIFY_HTML:
+                        res.content = html_minify(res.content)
                     cache.set(key, res, timeout)
             else:
                 res = func(self, request, *args, **kwargs)
