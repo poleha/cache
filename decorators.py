@@ -49,24 +49,32 @@ def cached_method(timeout=settings.CACHED_METHOD_DURATION):
         return wrapper
     return _cached_method
 
-def construct_cached_view_key(func, request=None, url=None):
+def construct_cached_view_key(func, request=None, url=None, model_class=None, kwarg=None, **kwargs):
+    model_pk = None
     if request:
         url = request.build_absolute_uri()
+    if model_class:
+        try:
+            model = model_class.objects.get(**{kwarg: kwargs[kwarg]})
+            model_pk = model.pk
+        except:
+            pass
     cls = get_class_that_defined_method(func)
     params = ''
     for param in settings.CACHED_VIEW_VARY_ON_REQUEST_PARAMS:
-        params += '__{0}_{1}'.format(param, rec_getattr(request, param))
-    prefix = settings.CACHED_VIEW_TEMLPATE_PREFIX.format(get_class_path(cls), func.__name__, params)
-    key = "{0}-{1}".format(prefix, url)
+        params += '__{}_{}'.format(param, rec_getattr(request, param))
+    prefix = settings.CACHED_VIEW_PARTIAL_TEMPLATE_PREFIX.format(get_class_path(cls), func.__name__, model_pk)
+    prefix += '{}'.format(params)
+    key = "{}-{}".format(prefix, url)
     return key
 
 
-def cached_view(timeout=settings.CACHED_VIEW_DURATION, test=lambda request: True):
+def cached_view(timeout=settings.CACHED_VIEW_DURATION, test=lambda request: True, model_class=None, kwarg=None):
     def decorator(func):
         @wraps(func)
         def wrapper(self, request, *args, **kwargs):
             if settings.CACHE_ENABLED and test(request):
-                key = construct_cached_view_key(func, request=request)
+                key = construct_cached_view_key(func, request=request, model_class=model_class, kwarg=kwarg, **kwargs)
                 res = cache.get(key)
                 if res is None:
                     res = func(self, request, *args, **kwargs)

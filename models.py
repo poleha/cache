@@ -46,7 +46,7 @@ class CachedModelMixin(Model):
                     get_class_path(type(self)), attr_name, self.pk) + '*')
 
             for cls_name, func_name in self.cached_views:
-                cache.delete_pattern(settings.CACHED_VIEW_PARTIAL_TEMPLATE_PREFIX.format(cls_name, func_name) + '*')
+                cache.delete_pattern(settings.CACHED_VIEW_PARTIAL_TEMPLATE_PREFIX.format(cls_name, func_name, self.pk) + '*')
 
     def clean_cached_property(self, attr_name):
         if settings.CACHE_ENABLED:

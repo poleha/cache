@@ -5,9 +5,7 @@ from django.utils.module_loading import import_string
 class Settings:
     EMPTY_CACHE_PLACEHOLDER = '__EMPTY__'
 
-    CACHED_VIEW_PARTIAL_TEMPLATE_PREFIX = "_cached_view-{0}-{1}"
-
-    CACHED_VIEW_TEMLPATE_PREFIX = CACHED_VIEW_PARTIAL_TEMPLATE_PREFIX + "-{2}"
+    CACHED_VIEW_PARTIAL_TEMPLATE_PREFIX = "_cached_view-{}-{}-{}"
 
     CACHED_PROPERTY_KEY_TEMPLATE = '_cached_{0}-{1}-{2}'
 
