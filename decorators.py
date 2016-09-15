@@ -2,6 +2,7 @@ from .app_settings import settings
 from django.core.cache import cache
 from .helper import make_key_from_args, get_class_path, rec_getattr, get_class_that_defined_method
 from htmlmin.minify import html_minify
+from django.utils.functional import wraps
 
 
 class CachedProperty(property):
@@ -29,6 +30,7 @@ def cached_property(func):
 
 def cached_method(timeout=settings.CACHED_METHOD_DURATION):
     def _cached_method(func):
+        @wraps(func)
         def wrapper(self, *args, **kwargs):
             if settings.CACHE_ENABLED:
                 key = settings.CACHED_METHOD_KEY_FULL_TEMPLATE.format(get_class_path(type(self)), func.__name__, self.pk, make_key_from_args(args, kwargs))
@@ -47,18 +49,24 @@ def cached_method(timeout=settings.CACHED_METHOD_DURATION):
         return wrapper
     return _cached_method
 
+def construct_cached_view_key(func, request=None, url=None):
+    if request:
+        url = request.build_absolute_uri()
+    cls = get_class_that_defined_method(func)
+    params = ''
+    for param in settings.CACHED_VIEW_VARY_ON_REQUEST_PARAMS:
+        params += '__{0}_{1}'.format(param, rec_getattr(request, param))
+    prefix = settings.CACHED_VIEW_TEMLPATE_PREFIX.format(get_class_path(cls), func.__name__, params)
+    key = "{0}-{1}".format(prefix, url)
+    return key
+
 
 def cached_view(timeout=settings.CACHED_VIEW_DURATION, test=lambda request: True):
     def decorator(func):
+        @wraps(func)
         def wrapper(self, request, *args, **kwargs):
             if settings.CACHE_ENABLED and test(request):
-                url = request.build_absolute_uri()
-                cls = get_class_that_defined_method(func)
-                params = ''
-                for param in settings.CACHED_VIEW_VARY_ON_REQUEST_PARAMS:
-                    params += '__{0}_{1}'.format(param, rec_getattr(request, param))
-                prefix = settings.CACHED_VIEW_TEMLPATE_PREFIX.format(get_class_path(cls), func.__name__, params)
-                key = "{0}-{1}".format(prefix, url)
+                key = construct_cached_view_key(func, request=request)
                 res = cache.get(key)
                 if res is None:
                     res = func(self, request, *args, **kwargs)
